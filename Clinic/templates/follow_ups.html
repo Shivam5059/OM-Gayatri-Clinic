@@ -1,0 +1,27 @@
+{% extends 'clinic.html' %}
+{% block title %}Follow Ups | Om Gayatri Clinic{% endblock title %}
+{% block body %}
+<div class="header">
+    <h1>Follow Ups</h1>
+    <a class="btn" href="{% url 'Anand_Clinic:index' %}">Back to Home</a>
+</div>
+<div class="card">
+  <table id="followups-table">
+  <thead><tr><th>Patient</th><th>Scheduled</th><th>Status</th><th>Notes</th><th>Action</th></tr></thead>
+  <tbody>
+    {% for f in followups %}
+      <tr>
+        <td>{{ f.patient.name }}</td>
+        <td>{{ f.scheduled_date }}</td>
+        <td>{{ f.get_status_display }}</td>
+        <td>{{ f.notes|truncatechars:80 }}</td>
+        <td><a href="{% url 'Anand_Clinic:followup_detail' f.pk %}">View</a></td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+  </div>
+{% endblock body %}
+
+

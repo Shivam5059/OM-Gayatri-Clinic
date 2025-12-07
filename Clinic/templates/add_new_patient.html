@@ -1,0 +1,75 @@
+{% extends 'clinic.html' %}
+{% block title %}Add New Patient | Om Gayatri Clinic{% endblock title %}
+{% block head %}
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+    /* Page typography overrides for a pleasant, clean look */
+    .header, .card, .form-field { font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+    .header h1 { font-size: 24px; font-weight: 700; letter-spacing: 0.2px; }
+    .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .form-field { display: flex; flex-direction: column; gap: 6px; }
+    .form-field label { font-size: 14px; font-weight: 600; color: var(--muted); }
+    .form-field input, .form-field select { height: 44px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 16px; }
+    .form-field input:focus, .form-field select:focus { outline: none; border-color: var(--primary-3); box-shadow: 0 0 0 3px rgba(96,165,250,0.25); }
+    .form-errors { color: #b91c1c; background: #fee2e2; border: 1px solid #fecaca; padding: 10px 12px; border-radius: 10px; margin-bottom: 12px; }
+    .actions { margin-top: 16px; display: flex; gap: 8px; }
+    .btn {color:#1b1919;border: 2px solid cadetblue;size:16px;}
+    @media (max-width: 720px) { .form-grid { grid-template-columns: 1fr; } }
+    /* Tidy up default Django error list */
+    .errorlist { margin: 0; padding: 0; list-style: none; color: #b91c1c; font-size: 13px; }
+</style>
+{% endblock head %}
+{% block body %}
+<div class="header">
+    <h1>Add New Patient</h1>
+</div>
+<div class="card">
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+        <div class="form-errors">{{ form.non_field_errors }}</div>
+        {% endif %}
+        <div class="form-grid">
+            <div class="form-field">
+                {{ form.case.label_tag }}
+                {{ form.case }}
+                {{ form.case.errors }}
+            </div>
+            <div class="form-field">
+                {{ form.name.label_tag }}
+                {{ form.name }}
+                {{ form.name.errors }}
+            </div>
+            <div class="form-field">
+                {{ form.age.label_tag }}
+                {{ form.age }}
+                {{ form.age.errors }}
+            </div>
+            <div class="form-field">
+                {{ form.gender.label_tag }}
+                {{ form.gender }}
+                {{ form.gender.errors }}
+            </div>
+            <div class="form-field">
+                {{ form.phone_no.label_tag }}
+                {{ form.phone_no }}
+                {{ form.phone_no.errors }}
+            </div>
+            <div class="form-field">
+                {{ form.address.label_tag }}
+                {{ form.address }}
+                {{ form.address.errors }}
+            </div>
+            <div class="form-field">
+                {{ form.doctor.label_tag }}
+                {{ form.doctor }}
+                {{ form.doctor.errors }}
+            </div>
+        </div>
+        <div class="actions">
+            <button class="btn" type="submit">Save Patient</button>
+            <a class="btn secondary" href="{% url 'Anand_Clinic:index' %}">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock body %}

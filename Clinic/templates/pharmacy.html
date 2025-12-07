@@ -1,0 +1,298 @@
+{% extends 'clinic.html' %}
+{% block title %}Pharmacy Dashboard | Om Gayatri Clinic{% endblock title %}
+{% block body %}
+<div class="header">
+    <h1>Pharmacy Dashboard</h1>
+    <div class="actions">
+        <button class="btn add-patient" onclick="toggleMedicineForm()">Add Medicine</button>
+        <a class="btn secondary" href="{% url 'Anand_Clinic:index' %}">Back to Home</a>
+    </div>
+</div>
+
+<div class="main-content-grid">
+    <!-- Low Stock Medicines -->
+    <div class="card">
+        <h2>⚠️ Low Stock Medicines</h2>
+        {% if low_stock_medicines %}
+        <div class="scrollable-section">
+            <ul class="list">
+                {% for medicine in low_stock_medicines %}
+                <li>
+                    <div>
+                        <strong>{{ medicine.name }}</strong>
+                        <span class="badge badge-warning">Stock: {{ medicine.stock_quantity }}</span>
+                    </div>
+                    <a class="btn" href="{% url 'Anand_Clinic:medicine_list' %}">View All</a>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% else %}
+        <p>No low stock medicines. All medicines are well stocked!</p>
+        {% endif %}
+    </div>
+
+    
+
+    <!-- Medicine Inventory (show all medicines instead of low stock) -->
+    <div class="card">
+        <h2>Medicine Inventory</h2>
+        {% if all_medicines %}
+        <div class="scrollable-section">
+            <ul class="list">
+                {% for medicine in all_medicines %}
+                <li>
+                    <div style="display:flex;gap:12px;align-items:center;justify-content:space-between;">
+                        <div>
+                            <strong>{{ medicine.name }}</strong>
+                            <div style="font-size:12px; color: var(--muted);">
+                                {{ medicine.generic_name }} • {{ medicine.get_medicine_type_display|default:medicine.medicine_type }}
+                            </div>
+                            <div style="font-size:12px; color: var(--muted); margin-top:4px;">
+                                Batch: {{ medicine.batch_number|default:'-' }} |
+                                Expiry: {% if medicine.expiry_date %}{{ medicine.expiry_date|date:"d M Y" }}{% else %}-{% endif %}
+                            </div>
+                        </div>
+
+                        <div style="display:flex;gap:8px;align-items:center;">
+                            <span class="badge">Stock: {{ medicine.stock_quantity }}</span>
+                            <span class="badge">₹{{ medicine.unit_price|floatformat:2 }}</span>
+                            <a class="btn" href="{% url 'Anand_Clinic:medicine_detail' medicine.pk %}">Details</a>
+                        </div>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% else %}
+        <p>No medicines in inventory. Add medicines using the "Add Medicine" button.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Inline Medicine Form Panel -->
+<div class="form-panel" id="medicineForm">
+    <h3>Add New Medicine</h3>
+    <form method="post" action="{% url 'Anand_Clinic:medicine_add' %}" id="medicineFormElement">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="medicine_name">Medicine Name *</label>
+            <input type="text" id="medicine_name" name="name" required>
+        </div>
+        <div class="form-group">
+            <label for="medicine_generic_name">Generic Name</label>
+            <input type="text" id="medicine_generic_name" name="generic_name">
+        </div>
+        <div class="form-group">
+            <label for="medicine_type">Medicine Type *</label>
+            <select id="medicine_type" name="medicine_type" required>
+                <option value="">Select Type</option>
+                <option value="tablet">Tablet</option>
+                <option value="capsule">Capsule</option>
+                <option value="syrup">Syrup</option>
+                <option value="injection">Injection</option>
+                <option value="ointment">Ointment</option>
+                <option value="drops">Drops</option>
+                <option value="other">Other</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="medicine_manufacturer">Manufacturer</label>
+            <input type="text" id="medicine_manufacturer" name="manufacturer">
+        </div>
+        <div class="form-group">
+            <label for="medicine_batch_number">Batch Number</label>
+            <input type="text" id="medicine_batch_number" name="batch_number">
+        </div>
+        <div class="form-group">
+            <label for="medicine_expiry_date">Expiry Date</label>
+            <input type="date" id="medicine_expiry_date" name="expiry_date">
+        </div>
+        <div class="form-group">
+            <label for="medicine_stock_quantity">Stock Quantity *</label>
+            <input type="number" id="medicine_stock_quantity" name="stock_quantity" min="0" required>
+        </div>
+        <div class="form-group">
+            <label for="medicine_unit_price">Unit Price (₹) *</label>
+            <input type="number" id="medicine_unit_price" name="unit_price" step="0.01" min="0" required>
+        </div>
+        <div class="form-group">
+            <label for="medicine_reorder_level">Reorder Level *</label>
+            <input type="number" id="medicine_reorder_level" name="reorder_level" min="0" required>
+            <small style="color: var(--muted); font-size: 12px;">Alert when stock falls below this level</small>
+        </div>
+        <div class="form-group">
+            <label for="medicine_description">Description</label>
+            <textarea id="medicine_description" name="description" rows="3"></textarea>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn">Save Medicine</button>
+            <button type="button" class="btn-close" onclick="toggleMedicineForm()">Cancel</button>
+        </div>
+    </form>
+</div>
+
+ 
+
+<style>
+.badge-warning {
+    background: rgba(251,191,36,0.15);
+    color: #d97706;
+    border-color: rgba(251,191,36,0.25);
+}
+.badge-success {
+    background: rgba(16,185,129,0.15);
+    color: var(--success);
+    border-color: rgba(16,185,129,0.25);
+}
+.actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+}
+.formset-item {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+.formset-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+.formset-item-title {
+    font-weight: 600;
+    color: var(--text);
+}
+.add-item-btn {
+    background: var(--primary-2);
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-bottom: 16px;
+    font-size: 14px;
+}
+.add-item-btn:hover {
+    background: var(--primary-3);
+}
+
+/* Ensure form actions stay visible at bottom when scrolling */
+#medicineForm .form-actions {
+    position: sticky;
+    bottom: 0;
+    background: var(--card);
+    padding-top: 16px;
+    margin-top: 16px;
+    border-top: 1px solid var(--border);
+    z-index: 10;
+}
+</style>
+
+<script>
+function toggleMedicineForm() {
+    const formPanel = document.getElementById('medicineForm');
+    const mainContent = document.querySelector('.main-content');
+    const mainContentGrid = document.querySelector('.main-content-grid');
+    
+    if (formPanel.classList.contains('show')) {
+        formPanel.classList.add('anim-exit');
+        setTimeout(() => {
+            formPanel.classList.remove('anim-exit');
+            formPanel.classList.remove('show');
+        }, 240);
+        mainContent.style.flex = '1';
+        mainContentGrid.classList.remove('form-active');
+    } else {
+        formPanel.classList.add('show');
+        formPanel.classList.add('anim-enter');
+        setTimeout(() => formPanel.classList.remove('anim-enter'), 320);
+        mainContent.style.flex = '0 0 65%';
+        mainContentGrid.classList.add('form-active');
+        const fields = formPanel.querySelectorAll('.form-group');
+        fields.forEach((fg, idx) => {
+            fg.classList.add('stagger');
+            fg.style.setProperty('--delay', (70 * idx) + 'ms');
+        });
+    }
+}
+
+
+// Close forms when clicking outside
+document.addEventListener('click', function(event) {
+    const medicineForm = document.getElementById('medicineForm');
+    const addButtons = document.querySelectorAll('.btn.add-patient');
+    const mainContent = document.querySelector('.main-content');
+    const mainContentGrid = document.querySelector('.main-content-grid');
+    
+    const isAddButton = Array.from(addButtons).some(btn => btn.contains(event.target));
+    
+    if (medicineForm && medicineForm.classList.contains('show') && 
+        !medicineForm.contains(event.target) && !isAddButton) {
+        medicineForm.classList.remove('show');
+        mainContent.style.flex = '1';
+        mainContentGrid.classList.remove('form-active');
+    }
+    
+});
+
+// Handle Medicine form submit via AJAX
+(function attachMedicineFormSubmitHandler() {
+    const formPanel = document.getElementById('medicineForm');
+    if (!formPanel) return;
+    const formEl = formPanel.querySelector('form');
+    if (!formEl) return;
+    formEl.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const submitBtn = formEl.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Saving...';
+        }
+
+        try {
+            const formData = new FormData(formEl);
+            const response = await fetch(formEl.getAttribute('action'), {
+                method: 'POST',
+                body: formData,
+                credentials: 'same-origin',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+
+            if (response.ok) {
+                // Close and reset the form
+                formEl.reset();
+                formPanel.classList.remove('show');
+                const mainContent = document.querySelector('.main-content');
+                const mainContentGrid = document.querySelector('.main-content-grid');
+                if (mainContent) mainContent.style.flex = '1';
+                if (mainContentGrid) mainContentGrid.classList.remove('form-active');
+                
+                // Refresh the page to show updated data
+                window.location.reload();
+            } else {
+                alert('Error saving medicine. Please try again.');
+            }
+        } catch(err) {
+            console.error('Failed to save medicine', err);
+            alert('Error saving medicine. Please try again.');
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Save Medicine';
+            }
+        }
+    });
+})();
+
+</script>
+{% endblock body %}

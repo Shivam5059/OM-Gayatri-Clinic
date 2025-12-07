@@ -1,0 +1,754 @@
+{% extends 'clinic.html' %}
+{% block title %}Medicines | Om Gayatri Clinic{% endblock title %}
+{% block body %}
+<div class="header">
+    <h1>Medicine Inventory</h1>
+    <div class="actions">
+        <button class="btn add-patient" onclick="toggleMedicineForm()">Add Medicine</button>
+        <a class="btn secondary" href="{% url 'Anand_Clinic:index' %}">Back to Home</a>
+    </div>
+</div>
+
+<!-- Alerts -->
+{% if low_stock_count > 0 %}
+<div class="alert alert-warning" style="margin-bottom: 20px;">
+    ⚠️ {{ low_stock_count }} medicine(s) are low on stock!
+</div>
+{% endif %}
+{% if expired_count > 0 %}
+<div class="alert alert-danger" style="margin-bottom: 20px;">
+    ⚠️ {{ expired_count }} medicine(s) have expired!
+</div>
+{% endif %}
+
+<!-- Search and Filter -->
+<div class="card" style="margin-bottom: 20px;">
+    <form method="get" class="filter-form" id="medicineFilterForm">
+        <div class="toolbar">
+            <div>
+                <label for="search">Search:</label>
+                <input type="text" id="search" name="search" value="{{ request.GET.search }}" placeholder="Name, Generic, Manufacturer">
+            </div>
+            <div>
+                <label for="type">Type:</label>
+                <select id="type" name="type">
+                    <option value="">All Types</option>
+                    <option value="tablet" {% if request.GET.type == 'tablet' %}selected{% endif %}>Tablet</option>
+                    <option value="capsule" {% if request.GET.type == 'capsule' %}selected{% endif %}>Capsule</option>
+                    <option value="syrup" {% if request.GET.type == 'syrup' %}selected{% endif %}>Syrup</option>
+                    <option value="injection" {% if request.GET.type == 'injection' %}selected{% endif %}>Injection</option>
+                    <option value="ointment" {% if request.GET.type == 'ointment' %}selected{% endif %}>Ointment</option>
+                    <option value="drops" {% if request.GET.type == 'drops' %}selected{% endif %}>Drops</option>
+                </select>
+            </div>
+            <div>
+                <label>
+                    <input type="checkbox" name="low_stock" value="true" {% if request.GET.low_stock == 'true' %}checked{% endif %}>
+                    Low Stock Only
+                </label>
+            </div>
+            <button type="submit" class="btn">Filter</button>
+            <a href="{% url 'Anand_Clinic:medicine_list' %}" class="btn secondary">Clear</a>
+        </div>
+    </form>
+</div>
+
+<div class="main-content-grid">
+    <div class="card">
+        <h2 id="medicineCardTitle">Medicine List</h2>
+        <div class="toolbar" id="medicineToolbar">
+            <div>
+                <label for="sortMedicines">Sort by</label>
+                <select id="sortMedicines">
+                    <option value="name">Name</option>
+                    <option value="stock">Stock</option>
+                    <option value="type">Type</option>
+                </select>
+            </div>
+        </div>
+        <div id="medicineListSection" class="scrollable-section">
+            <ul class="list">
+                {% for medicine in medicines %}
+                <li data-medicine-id="{{ medicine.pk }}" data-name="{{ medicine.name|lower }}" data-stock="{{ medicine.stock_quantity }}">
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+                        <div>
+                            <strong>{{ medicine.name }}</strong>
+                        </div>
+                        <div style="display:flex; gap:10px; align-items:center;">
+                            <span class="badge" style="font-weight:700;">{{ medicine.stock_quantity }}</span>
+                            <button class="btn update-btn" data-medicine-id="{{ medicine.pk }}">Update</button>
+                            <button class="btn dispense-btn" data-medicine-id="{{ medicine.pk }}">Dispense</button>
+                        </div>
+                    </div>
+                </li>
+                {% empty %}
+                <li>No medicines found. <button class="btn" onclick="toggleMedicineForm()">Add your first medicine</button></li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div id="medicineDetailSection" class="scrollable-section" style="display: none;"></div>
+    </div>
+</div>
+
+<!-- Inline Medicine Form Panel -->
+<div class="form-panel" id="medicineForm">
+    <h3 id="medicineFormTitle">Add New Medicine</h3>
+    <form method="post" action="{% url 'Anand_Clinic:medicine_add' %}" id="medicineFormElement">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="name">Medicine Name *</label>
+            <input type="text" id="name" name="name" required>
+        </div>
+        <div class="form-group">
+            <label for="stock_quantity">Stock Quantity *</label>
+            <input type="number" id="stock_quantity" name="stock_quantity" min="0" required>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn">Save Medicine</button>
+            <button type="button" class="btn-close" onclick="toggleMedicineForm()">Cancel</button>
+        </div>
+    </form>
+</div>
+
+<!-- Pagination -->
+{% if is_paginated %}
+<div class="pagination">
+    {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.type %}&type={{ request.GET.type }}{% endif %}" class="btn">Previous</a>
+    {% endif %}
+    <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.type %}&type={{ request.GET.type }}{% endif %}" class="btn">Next</a>
+    {% endif %}
+</div>
+{% endif %}
+
+<style>
+.alert {
+    padding: 12px 16px;
+    border-radius: 8px;
+    border: 1px solid;
+}
+.alert-warning {
+    background: rgba(251,191,36,0.15);
+    border-color: rgba(251,191,36,0.3);
+    color: #d97706;
+}
+.alert-danger {
+    background: rgba(239,68,68,0.15);
+    border-color: rgba(239,68,68,0.3);
+    color: #dc2626;
+}
+.badge-danger {
+    background: rgba(239,68,68,0.15);
+    color: #dc2626;
+    border-color: rgba(239,68,68,0.25);
+}
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    margin-top: 20px;
+    padding: 16px;
+}
+</style>
+
+<script>
+function toggleMedicineForm() {
+    const formPanel = document.getElementById('medicineForm');
+    const mainContent = document.querySelector('.main-content');
+    const mainContentGrid = document.querySelector('.main-content-grid');
+    
+    if (formPanel.classList.contains('show')) {
+        formPanel.classList.add('anim-exit');
+        setTimeout(() => {
+            formPanel.classList.remove('anim-exit');
+            formPanel.classList.remove('show');
+        }, 240);
+        mainContent.style.flex = '1';
+        mainContentGrid.classList.remove('form-active');
+    } else {
+        formPanel.classList.add('show');
+        formPanel.classList.add('anim-enter');
+        setTimeout(() => formPanel.classList.remove('anim-enter'), 320);
+        mainContent.style.flex = '0 0 65%';
+        mainContentGrid.classList.add('form-active');
+        const fields = formPanel.querySelectorAll('.form-group');
+        fields.forEach((fg, idx) => {
+            fg.classList.add('stagger');
+            fg.style.setProperty('--delay', (70 * idx) + 'ms');
+        });
+    }
+}
+
+// Close form when clicking outside
+document.addEventListener('click', function(event) {
+    const formPanel = document.getElementById('medicineForm');
+    const addButton = document.querySelector('.btn.add-patient');
+    const mainContent = document.querySelector('.main-content');
+    const mainContentGrid = document.querySelector('.main-content-grid');
+    
+    if (formPanel && formPanel.classList.contains('show') && 
+        !formPanel.contains(event.target) && 
+        !addButton.contains(event.target)) {
+        formPanel.classList.remove('show');
+        mainContent.style.flex = '1';
+        mainContentGrid.classList.remove('form-active');
+    }
+});
+
+// Handle Add/Edit Medicine submit via AJAX
+(function attachMedicineFormSubmitHandler() {
+    const formPanel = document.getElementById('medicineForm');
+    if (!formPanel) return;
+    let formEl = document.getElementById('medicineFormElement');
+    if (!formEl) return;
+    
+    // Remove any existing listeners by cloning
+    const oldFormEl = formEl;
+    formEl = oldFormEl.cloneNode(true);
+    oldFormEl.parentNode.replaceChild(formEl, oldFormEl);
+    
+    formEl.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const submitBtn = formEl.querySelector('button[type="submit"]');
+        const isEdit = formEl.action.includes('/edit/');
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = isEdit ? 'Updating...' : 'Saving...';
+        }
+
+        try {
+            const formData = new FormData(formEl);
+            const response = await fetch(formEl.action, {
+                method: 'POST',
+                body: formData,
+                credentials: 'same-origin',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+
+            if (response.ok) {
+                const ct = response.headers.get('content-type') || '';
+                // If server returned JSON (AJAX), insert the new item client-side to avoid full refresh
+                if (ct.includes('application/json')) {
+                    const data = await response.json();
+                    if (data.success) {
+                        const list = document.querySelector('#medicineListSection .list');
+                        if (list) {
+                            // build li element matching template structure
+                            const li = document.createElement('li');
+                            li.setAttribute('data-medicine-id', data.id);
+                            li.setAttribute('data-name', (data.name||'').toLowerCase());
+                            li.setAttribute('data-stock', data.stock_quantity);
+                            li.innerHTML = `
+                                <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+                                    <div><strong>${data.name}</strong></div>
+                                    <div style="display:flex; gap:10px; align-items:center;">
+                                                <span class="badge" style="font-weight:700;">${data.stock_quantity}</span>
+                                                <button class="btn update-btn" data-medicine-id="${data.id}">Update</button>
+                                                <button class="btn dispense-btn" data-medicine-id="${data.id}">Dispense</button>
+                                            </div>
+                                </div>
+                            `;
+                            // insert at top
+                            list.insertBefore(li, list.firstChild);
+                        }
+                    }
+                } else {
+                    // Fallback: fetch full page and replace list section
+                    const refreshed = await fetch(window.location.pathname + (window.location.search ? '&' : '?') + '_=' + Date.now(), {
+                        credentials: 'same-origin',
+                        cache: 'no-store'
+                    });
+                    const html = await refreshed.text();
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const newListSection = doc.querySelector('#medicineListSection');
+                    const currentListSection = document.querySelector('#medicineListSection');
+                    if (newListSection && currentListSection) {
+                        currentListSection.innerHTML = newListSection.innerHTML;
+                    }
+                }
+
+                // If detail view is open, refresh it
+                const detailSection = document.getElementById('medicineDetailSection');
+                if (detailSection && detailSection.style.display !== 'none' && currentEditMedicineId) {
+                    const detailRes = await fetch(`/pharmacy/medicines/${currentEditMedicineId}/`);
+                    const detailHtml = await detailRes.text();
+                    const detailDoc = parser.parseFromString(detailHtml, 'text/html');
+                    const header = detailDoc.querySelector('.header');
+                    const printArea = detailDoc.querySelector('.print-area') || detailDoc.querySelector('.card');
+                    const headerHtml = header ? header.outerHTML : '';
+                    const bodyHtml = printArea ? printArea.outerHTML : '';
+                    const medicineId = currentEditMedicineId;
+                    let modifiedHtml = (headerHtml + bodyHtml).replace(
+                        /Back to Medicines/g,
+                        '<a href="#" onclick="event.preventDefault(); showMedicineList(); return false;" class="btn secondary">Back to List</a>'
+                    );
+                    modifiedHtml = modifiedHtml.replace(
+                        /onclick="event\.preventDefault\(\); if\(window\.openEditMedicineForm\)/g,
+                        `onclick="event.preventDefault(); if(window.openEditMedicineForm) { openEditMedicineForm(${medicineId}); }`
+                    );
+                    detailSection.innerHTML = modifiedHtml;
+                }
+
+                // Close and reset the form
+                formEl.reset();
+                formPanel.classList.remove('show');
+                const mainContent = document.querySelector('.main-content');
+                const mainContentGrid = document.querySelector('.main-content-grid');
+                if (mainContent) mainContent.style.flex = '1';
+                if (mainContentGrid) mainContentGrid.classList.remove('form-active');
+
+                const listSection = document.getElementById('medicineListSection');
+                if (listSection) listSection.style.display = 'block';
+                if (detailSection && !currentEditMedicineId) {
+                    detailSection.style.display = 'none';
+                    detailSection.innerHTML = '';
+                }
+
+                const title = document.getElementById('medicineCardTitle');
+                if (title) title.textContent = 'Medicine List';
+                
+                // Reset form for next use (add mode)
+                formEl.action = '{% url "Anand_Clinic:medicine_add" %}';
+                document.getElementById('medicineFormTitle').textContent = 'Add New Medicine';
+                formEl.querySelector('button[type="submit"]').textContent = 'Save Medicine';
+                currentEditMedicineId = null;
+                
+                // Slide-in list
+                if (listSection) {
+                    listSection.classList.add('list-enter');
+                    setTimeout(() => listSection.classList.remove('list-enter'), 420);
+                }
+            } else {
+                alert('Error saving medicine. Please try again.');
+            }
+        } catch(err) {
+            console.error('Failed to save medicine', err);
+            alert('Error saving medicine. Please try again.');
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = isEdit ? 'Update Medicine' : 'Save Medicine';
+            }
+        }
+    });
+})();
+
+// Inline medicine details loader
+(function () {
+    const listSection = document.getElementById('medicineListSection');
+    const detailSection = document.getElementById('medicineDetailSection');
+    if (!listSection || !detailSection) return;
+
+    listSection.addEventListener('click', async function(event) {
+        // handle update button clicks (open update modal)
+        const updateBtn = event.target.closest('button.update-btn');
+        if (updateBtn) {
+            const medId = updateBtn.dataset.medicineId;
+            const li = document.querySelector(`li[data-medicine-id="${medId}"]`);
+            const medName = li ? li.querySelector('strong')?.textContent : '';
+            const currentStock = li ? parseInt(li.getAttribute('data-stock') || (li.querySelector('.badge')?.textContent||0)) : 0;
+            openUpdateModal(medId, medName || 'Medicine', currentStock);
+            return;
+        }
+
+        // handle dispense button clicks (open modal)
+        const dispenseBtn = event.target.closest('button.dispense-btn');
+        if (dispenseBtn) {
+            const medId = dispenseBtn.dataset.medicineId;
+            const li = document.querySelector(`li[data-medicine-id="${medId}"]`);
+            const medName = li ? li.querySelector('strong')?.textContent : '';
+            openDispenseModal(medId, medName || 'Medicine');
+            return;
+        }
+
+        const anchor = event.target.closest('a');
+        if (!anchor) return;
+        const isViewBtn = anchor.matches('a.btn') && anchor.textContent.trim().toLowerCase() === 'view details';
+        if (!isViewBtn) return;
+        event.preventDefault();
+
+        try {
+            const res = await fetch(anchor.getAttribute('href'));
+            const html = await res.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            
+            // Pull over detail-specific styles
+            const detailStyles = Array.from(doc.querySelectorAll('head style, head link[rel="stylesheet"]'));
+            detailStyles.forEach(node => {
+                const copy = node.cloneNode(true);
+                copy.setAttribute('data-detail-style', 'true');
+                if (!document.querySelector(`style[data-detail-style="true"]`)) {
+                    document.head.appendChild(copy);
+                }
+            });
+
+            // Get content from detail page
+            const header = doc.querySelector('.header');
+            const printArea = doc.querySelector('.print-area') || doc.querySelector('.card');
+
+            const headerHtml = header ? header.outerHTML : '';
+            const bodyHtml = printArea ? printArea.outerHTML : (doc.body ? doc.body.innerHTML : '');
+            
+            // Replace "Back to Medicines" with "Back to List" and update Edit button
+            let modifiedHtml = (headerHtml + bodyHtml).replace(
+                /Back to Medicines/g,
+                '<a href="#" onclick="event.preventDefault(); showMedicineList(); return false;" class="btn secondary">Back to List</a>'
+            );
+            
+            // Update Edit button to use inline edit
+            const medicineId = anchor.getAttribute('href').match(/\/(\d+)\//)?.[1];
+            if (medicineId) {
+                modifiedHtml = modifiedHtml.replace(
+                    /onclick="event\.preventDefault\(\); if\(window\.openEditMedicineForm\)/g,
+                    `onclick="event.preventDefault(); if(window.openEditMedicineForm) { openEditMedicineForm(${medicineId}); }`
+                );
+            }
+            
+            detailSection.innerHTML = modifiedHtml;
+
+            listSection.style.display = 'none';
+            detailSection.style.display = 'block';
+            detailSection.classList.add('detail-enter');
+            const toolbar = document.getElementById('medicineToolbar');
+            if (toolbar) toolbar.style.display = 'none';
+
+            const title = document.getElementById('medicineCardTitle');
+            if (title) title.textContent = 'Medicine Details';
+        } catch (e) {
+            console.error(e);
+        }
+    });
+})();
+
+function showMedicineList() {
+    const listSection = document.getElementById('medicineListSection');
+    const detailSection = document.getElementById('medicineDetailSection');
+    const toolbar = document.getElementById('medicineToolbar');
+    const title = document.getElementById('medicineCardTitle');
+    
+    if (detailSection) {
+        detailSection.classList.add('detail-exit');
+        setTimeout(() => {
+            detailSection.classList.remove('detail-exit');
+            detailSection.style.display = 'none';
+            detailSection.innerHTML = '';
+            
+            if (listSection) {
+                listSection.style.display = 'block';
+                listSection.classList.add('list-enter');
+                setTimeout(() => listSection.classList.remove('list-enter'), 460);
+            }
+            
+            if (title) title.textContent = 'Medicine List';
+            if (toolbar) toolbar.style.display = '';
+        }, 260);
+    }
+}
+
+// Sort and filter logic for medicine list
+(function medicineSortFilter() {
+    const sortSelect = document.getElementById('sortMedicines');
+    const listSection = document.getElementById('medicineListSection');
+    if (!listSection) return;
+    const list = listSection.querySelector('.list');
+    if (!list) return;
+
+    function _gatherItems() {
+        return Array.from(list.querySelectorAll('li')).map(li => li.cloneNode(true));
+    }
+
+    function apply() {
+        list.innerHTML = '';
+        const originalItems = _gatherItems();
+        originalItems.forEach(node => list.appendChild(node.cloneNode(true)));
+
+        const items = Array.from(list.querySelectorAll('li'));
+        const sortBy = sortSelect ? sortSelect.value : 'name';
+
+        items.sort((a, b) => {
+            if (sortBy === 'name') {
+                return a.getAttribute('data-name').localeCompare(b.getAttribute('data-name'));
+            }
+            if (sortBy === 'stock') {
+                return Number(b.getAttribute('data-stock')) - Number(a.getAttribute('data-stock'));
+            }
+            if (sortBy === 'type') {
+                return a.getAttribute('data-type').localeCompare(b.getAttribute('data-type'));
+            }
+            return 0;
+        });
+
+        list.innerHTML = '';
+        items.forEach(li => list.appendChild(li));
+    }
+
+    if (sortSelect) sortSelect.addEventListener('change', apply);
+})();
+
+// Inline Edit Medicine functionality
+let currentEditMedicineId = null;
+
+function openEditMedicineForm(medicineId) {
+    currentEditMedicineId = medicineId;
+    const formPanel = document.getElementById('medicineForm');
+    const formEl = document.getElementById('medicineFormElement');
+    const formTitle = document.getElementById('medicineFormTitle');
+    
+    // Fetch medicine edit form to get current values
+    fetch(`/pharmacy/medicines/${medicineId}/edit/`)
+        .then(response => response.text())
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const editForm = doc.querySelector('form');
+            
+            if (!editForm) {
+                // Fallback: fetch detail page and parse
+                return fetch(`/pharmacy/medicines/${medicineId}/`).then(r => r.text());
+            }
+            
+            // Extract values from edit form
+            const inputs = editForm.querySelectorAll('input, select, textarea');
+            inputs.forEach(input => {
+                const fieldName = input.name;
+                const localInput = formEl.querySelector(`[name="${fieldName}"]`);
+                if (localInput) {
+                    if (input.type === 'checkbox') {
+                        localInput.checked = input.checked;
+                    } else {
+                        localInput.value = input.value;
+                    }
+                }
+            });
+            
+            // Update form action and title
+            formEl.action = `/pharmacy/medicines/${medicineId}/edit/`;
+            formTitle.textContent = 'Edit Medicine';
+            formEl.querySelector('button[type="submit"]').textContent = 'Update Medicine';
+            
+            // Show form
+            toggleMedicineForm();
+        })
+        .catch(error => {
+            console.error('Error loading medicine data:', error);
+            alert('Error loading medicine data. Please try again.');
+        });
+}
+
+
+// Make openEditMedicineForm globally available
+window.openEditMedicineForm = openEditMedicineForm;
+</script>
+
+<!-- Dispense Modal -->
+<div id="dispenseModal" class="modal" style="display:none;">
+    <div class="modal-backdrop"></div>
+    <div class="modal-panel">
+        <h3 id="dispenseModalTitle">Dispense Medicine</h3>
+        <div style="margin:8px 0 12px; color:var(--muted);" id="dispenseMedName">&nbsp;</div>
+        <div style="display:flex; gap:8px; align-items:center; margin-bottom:12px;">
+            <label style="min-width:80px;">Quantity</label>
+            <input id="dispenseQty" type="number" min="1" value="1" style="flex:1; padding:8px; border-radius:6px; border:1px solid var(--border);">
+            <div style="display:flex; gap:6px;">
+                <button class="btn small" type="button" id="quickPlus1">+1</button>
+                <button class="btn small" type="button" id="quickPlus5">+5</button>
+            </div>
+        </div>
+        <div style="display:flex; gap:8px; justify-content:flex-end;">
+            <button class="btn secondary" type="button" id="dispenseCancel">Cancel</button>
+            <button class="btn" type="button" id="dispenseConfirm">Dispense</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" style="position:fixed; right:20px; bottom:20px; display:none; background:#111827; color:#fff; padding:10px 14px; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,0.2); font-size:14px;"></div>
+
+<!-- Update Stock Modal -->
+<div id="updateModal" class="modal" style="display:none;">
+    <div class="modal-backdrop"></div>
+    <div class="modal-panel">
+        <h3 id="updateModalTitle">Update Medicine Stock</h3>
+        <div style="margin:8px 0 12px; color:var(--muted);" id="updateMedName">&nbsp;</div>
+        <div style="margin-bottom:8px;">Current stock: <strong id="updateCurrentStock">0</strong></div>
+        <div style="display:flex; gap:8px; align-items:center; margin-bottom:12px;">
+            <label style="min-width:80px;">Quantity</label>
+            <input id="updateQty" type="number" min="0" value="0" style="flex:1; padding:8px; border-radius:6px; border:1px solid var(--border);">
+            <div style="display:flex; gap:6px;">
+                <button class="btn small" type="button" id="updatePlus1">+1</button>
+                <button class="btn small" type="button" id="updatePlus5">+5</button>
+            </div>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center; margin-bottom:12px;">
+            <label style="min-width:80px;">Mode</label>
+            <div style="display:flex; gap:8px;">
+                <button class="btn" type="button" id="updateModeAdd">Add</button>
+                <button class="btn" type="button" id="updateModeSet">Set</button>
+            </div>
+        </div>
+        <div style="display:flex; gap:8px; justify-content:flex-end;">
+            <button class="btn secondary" type="button" id="updateCancel">Cancel</button>
+            <button class="btn" type="button" id="updateConfirm">Update</button>
+        </div>
+    </div>
+</div>
+
+<style>
+    .modal { position:fixed; inset:0; z-index:1200; }
+    .modal-backdrop { position:absolute; inset:0; background:rgba(0,0,0,0.4); }
+    .modal-panel { position:relative; width:420px; max-width:92%; margin:80px auto; background:white; border-radius:10px; padding:18px; box-shadow:0 20px 40px rgba(2,6,23,0.2); z-index:2; }
+    .btn.small { padding:6px 8px; font-size:13px; }
+</style>
+
+<script>
+// Polished dispense modal logic
+let _currentDispenseMedId = null;
+function openDispenseModal(medId, medName) {
+    _currentDispenseMedId = medId;
+    document.getElementById('dispenseMedName').textContent = medName;
+    document.getElementById('dispenseQty').value = 1;
+    document.getElementById('dispenseModal').style.display = 'block';
+    setTimeout(() => document.getElementById('dispenseQty').focus(), 80);
+}
+function closeDispenseModal() {
+    _currentDispenseMedId = null;
+    document.getElementById('dispenseModal').style.display = 'none';
+}
+
+function showToast(msg, timeout=2500) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.display = 'block';
+    t.style.opacity = '1';
+    clearTimeout(t._hide);
+    t._hide = setTimeout(()=>{ t.style.opacity='0'; setTimeout(()=>t.style.display='none',300); }, timeout);
+}
+
+document.getElementById('dispenseCancel').addEventListener('click', closeDispenseModal);
+document.getElementById('quickPlus1').addEventListener('click', ()=>{
+    const el = document.getElementById('dispenseQty'); el.value = (parseInt(el.value||0)||0) + 1;
+});
+document.getElementById('quickPlus5').addEventListener('click', ()=>{
+    const el = document.getElementById('dispenseQty'); el.value = (parseInt(el.value||0)||0) + 5;
+});
+
+document.getElementById('dispenseConfirm').addEventListener('click', async function(){
+    const qtyEl = document.getElementById('dispenseQty');
+    let qty = parseInt(qtyEl.value);
+    if (!qty || qty <= 0) { alert('Enter a valid quantity'); qtyEl.focus(); return; }
+    if (!_currentDispenseMedId) { alert('No medicine selected'); return; }
+
+    // CSRF helper
+    function getCookie(name) {
+        let cookieValue = null; if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';'); for (let i=0;i<cookies.length;i++){ const c = cookies[i].trim(); if (c.substring(0,name.length+1) === (name+'=')) { cookieValue = decodeURIComponent(c.substring(name.length+1)); break; } }
+        }
+        return cookieValue;
+    }
+
+    const btn = this; btn.disabled = true; btn.textContent = 'Dispensing...';
+    try {
+        const res = await fetch(`/pharmacy/medicines/${_currentDispenseMedId}/dispense/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: `quantity=${encodeURIComponent(qty)}`
+        });
+        const data = await res.json();
+        if (data.success) {
+            // update UI
+            const li = document.querySelector(`li[data-medicine-id="${_currentDispenseMedId}"]`);
+            if (li) {
+                const badge = li.querySelector('.badge'); if (badge) badge.textContent = data.new_stock;
+            }
+            showToast(`Dispensed ${data.removed}. New stock: ${data.new_stock}`);
+            closeDispenseModal();
+        } else {
+            alert('Error: ' + (data.error || 'Unable to dispense'));
+        }
+    } catch (err) {
+        console.error(err); alert('Network error while dispensing');
+    } finally {
+        btn.disabled = false; btn.textContent = 'Dispense';
+    }
+});
+</script>
+<script>
+// Update modal logic
+let _currentUpdateMedId = null;
+let _updateMode = 'add';
+function openUpdateModal(medId, medName, currentStock) {
+    _currentUpdateMedId = medId;
+    _updateMode = 'add';
+    document.getElementById('updateMedName').textContent = medName;
+    const cs = document.getElementById('updateCurrentStock'); if (cs) cs.textContent = currentStock;
+    const q = document.getElementById('updateQty'); if (q) q.value = 0;
+    const modal = document.getElementById('updateModal'); if (modal) modal.style.display = 'block';
+    // set default mode visuals
+    const ma = document.getElementById('updateModeAdd'); const ms = document.getElementById('updateModeSet');
+    if (ma) ma.classList.add('active'); if (ms) ms.classList.remove('active');
+    setTimeout(()=>{ const qel = document.getElementById('updateQty'); if (qel) qel.focus(); }, 80);
+}
+function closeUpdateModal() {
+    _currentUpdateMedId = null;
+    const modal = document.getElementById('updateModal'); if (modal) modal.style.display = 'none';
+}
+
+const _maybe = (id)=> document.getElementById(id);
+if (_maybe('updateCancel')) _maybe('updateCancel').addEventListener('click', closeUpdateModal);
+if (_maybe('updatePlus1')) _maybe('updatePlus1').addEventListener('click', ()=>{ const el=_maybe('updateQty'); if(el) el.value = (parseInt(el.value||0)||0)+1; });
+if (_maybe('updatePlus5')) _maybe('updatePlus5').addEventListener('click', ()=>{ const el=_maybe('updateQty'); if(el) el.value = (parseInt(el.value||0)||0)+5; });
+
+if (_maybe('updateModeAdd')) _maybe('updateModeAdd').addEventListener('click', function(){ _updateMode='add'; this.classList.add('active'); const ms=_maybe('updateModeSet'); if(ms) ms.classList.remove('active'); });
+if (_maybe('updateModeSet')) _maybe('updateModeSet').addEventListener('click', function(){ _updateMode='set'; this.classList.add('active'); const ma=_maybe('updateModeAdd'); if(ma) ma.classList.remove('active'); });
+
+if (_maybe('updateConfirm')) _maybe('updateConfirm').addEventListener('click', async function(){
+    const qtyEl = _maybe('updateQty');
+    let qty = qtyEl ? parseInt(qtyEl.value) : NaN;
+    if (!Number.isFinite(qty) || qty < 0) { alert('Enter a valid quantity'); if(qtyEl) qtyEl.focus(); return; }
+    if (!_currentUpdateMedId) { alert('No medicine selected'); return; }
+
+    function getCookie(name) {
+        let cookieValue = null; if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';'); for (let i=0;i<cookies.length;i++){ const c = cookies[i].trim(); if (c.substring(0,name.length+1) === (name+'=')) { cookieValue = decodeURIComponent(c.substring(name.length+1)); break; } }
+        }
+        return cookieValue;
+    }
+
+    const btn = this; btn.disabled = true; btn.textContent = 'Updating...';
+    try {
+        const res = await fetch(`/pharmacy/medicines/${_currentUpdateMedId}/update_stock/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: `mode=${encodeURIComponent(_updateMode)}&quantity=${encodeURIComponent(qty)}`
+        });
+        const data = await res.json();
+        if (data.success) {
+            const li = document.querySelector(`li[data-medicine-id="${_currentUpdateMedId}"]`);
+            if (li) { li.setAttribute('data-stock', data.new_stock); const badge = li.querySelector('.badge'); if (badge) badge.textContent = data.new_stock; }
+            if (typeof showToast === 'function') showToast(`Stock updated (${data.delta >= 0 ? '+' : ''}${data.delta}). New: ${data.new_stock}`);
+            closeUpdateModal();
+        } else {
+            alert('Error: ' + (data.error || 'Unable to update stock'));
+        }
+    } catch (err) {
+        console.error(err); alert('Network error while updating stock');
+    } finally {
+        btn.disabled = false; btn.textContent = 'Update';
+    }
+});
+</script>
+
+{% endblock body %}

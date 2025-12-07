@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Doctor Dashboard</h2>
+<h3>Patient List</h3>
+
+<table border="1" cellpadding="8">
+    <tr>
+        <th>Name</th>
+        <th>Age</th>
+        <th>Gender</th>
+        <th>Phone</th>
+    </tr>
+
+    {% for p in patients %}
+    <tr>
+        <td>{{ p.name }}</td>
+        <td>{{ p.age }}</td>
+        <td>{{ p.gender }}</td>
+        <td>{{ p.phone }}</td>
+    </tr>
+    {% empty %}
+    <tr>
+        <td colspan="4">No patients found.</td>
+    </tr>
+    {% endfor %}
+</table>
+{% endblock %}

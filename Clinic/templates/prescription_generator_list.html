@@ -1,0 +1,60 @@
+{% extends 'clinic.html' %}
+{% block title %}Past Prescriptions{% endblock title %}
+{% block body %}
+<div class="header">
+    <h1>Past Prescriptions</h1>
+    <div class="actions">
+        <a class="btn" href="{% url 'Anand_Clinic:prescription_generator_create' %}">New Prescription</a>
+        <a class="btn secondary" href="{% url 'Anand_Clinic:index' %}">Back to Home</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="toolbar">
+        <div>
+            <label for="searchQ">Search</label>
+            <input type="text" id="searchQ" placeholder="Search by patient or case" value="{{ request.GET.q }}">
+            <button type="button" class="btn small" id="searchBtn">Search</button>
+            <button type="button" class="btn-clear" id="clearBtn">Clear</button>
+        </div>
+        <div>
+            <span class="badge">Total: {{ total_prescriptions }}</span>
+        </div>
+    </div>
+    <div class="scrollable-section">
+        <ul class="list">
+            {% for p in prescriptions %}
+            <li>
+                <div class="patient-row">
+                    <div class="patient-info">
+                        <strong>{{ p.patient.name }}</strong>
+                        <span class="badge">Case #{{ p.case_number }}</span>
+                    </div>
+                    <div class="patient-actions">
+                        <span class="badge date-badge">{{ p.created_at|date:"M d, Y H:i" }}</span>
+                        <a class="btn" href="{% url 'Anand_Clinic:prescription_generator_detail' p.pk %}">View</a>
+                        <a class="btn secondary" href="{% url 'Anand_Clinic:prescription_generator_edit' p.pk %}">Edit</a>
+                    </div>
+                </div>
+            </li>
+            {% empty %}
+            <li>No prescriptions found.</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<script>
+document.getElementById('searchBtn').addEventListener('click', function(){
+  const q = document.getElementById('searchQ').value
+  const url = new URL(window.location.href)
+  if (q) url.searchParams.set('q', q); else url.searchParams.delete('q')
+  window.location.href = url.toString()
+})
+document.getElementById('clearBtn').addEventListener('click', function(){
+  const url = new URL(window.location.href)
+  url.searchParams.delete('q')
+  window.location.href = url.toString()
+})
+</script>
+{% endblock body %}
